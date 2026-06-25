@@ -85,31 +85,45 @@ function StippleScreen({ src, alt, width, height }: StippleScreenProps) {
 
     let curX = 0, curY = 0;
 
-    const onEnter = (e: MouseEvent) => {
-      const rect = container.getBoundingClientRect();
-      curX = e.clientX - rect.left;
-      curY = e.clientY - rect.top;
-      // Snap position instantly, then grow radius smoothly
-      reveal.style.transition = "none";
-      reveal.style.clipPath = `circle(0px at ${curX}px ${curY}px)`;
-      requestAnimationFrame(() => {
-        reveal.style.transition = "clip-path 0.25s ease";
-        reveal.style.clipPath = `circle(60px at ${curX}px ${curY}px)`;
-      });
-    };
+    const isOverPortrait = (x: number, y: number) =>
+      x >= portraitX && x <= portraitX + PORTRAIT_W &&
+      y >= portraitY && y <= portraitY + PORTRAIT_H;
 
     const onMove = (e: MouseEvent) => {
       const rect = container.getBoundingClientRect();
       curX = e.clientX - rect.left;
       curY = e.clientY - rect.top;
-      reveal.style.transition = "clip-path 0.08s linear";
-      reveal.style.clipPath = `circle(60px at ${curX}px ${curY}px)`;
+
+      if (isOverPortrait(curX, curY)) {
+        container.style.cursor = "none";
+        reveal.style.transition = "clip-path 0.08s linear";
+        reveal.style.clipPath = `circle(60px at ${curX - portraitX}px ${curY - portraitY}px)`;
+      } else {
+        container.style.cursor = "default";
+        reveal.style.transition = "clip-path 0.25s ease";
+        reveal.style.clipPath = `circle(0px at ${curX - portraitX}px ${curY - portraitY}px)`;
+      }
+    };
+
+    const onEnter = (e: MouseEvent) => {
+      const rect = container.getBoundingClientRect();
+      curX = e.clientX - rect.left;
+      curY = e.clientY - rect.top;
+      if (isOverPortrait(curX, curY)) {
+        container.style.cursor = "none";
+        reveal.style.transition = "none";
+        reveal.style.clipPath = `circle(0px at ${curX - portraitX}px ${curY - portraitY}px)`;
+        requestAnimationFrame(() => {
+          reveal.style.transition = "clip-path 0.25s ease";
+          reveal.style.clipPath = `circle(60px at ${curX - portraitX}px ${curY - portraitY}px)`;
+        });
+      }
     };
 
     const onLeave = () => {
-      // Shrink at current position, not at 0,0
+      container.style.cursor = "default";
       reveal.style.transition = "clip-path 0.25s ease";
-      reveal.style.clipPath = `circle(0px at ${curX}px ${curY}px)`;
+      reveal.style.clipPath = `circle(0px at ${curX - portraitX}px ${curY - portraitY}px)`;
     };
 
     container.addEventListener("mouseenter", onEnter);
@@ -129,7 +143,6 @@ function StippleScreen({ src, alt, width, height }: StippleScreenProps) {
       style={{
         width,
         height,
-        cursor: "none",
         backgroundColor: "#000C27",
       }}
     >
