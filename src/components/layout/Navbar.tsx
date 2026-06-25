@@ -74,7 +74,7 @@ export function Navbar() {
     <header className="fixed top-6 left-0 right-0 z-50 flex justify-center pointer-events-none">
       <nav
         aria-label="Main navigation"
-        className="pointer-events-auto rounded-full px-16 pt-4 pb-7"
+        className="pointer-events-auto rounded-full px-16 pt-2 pb-4"
         style={{
           backgroundColor: "#FAFBFF",
           // Elevated — tray sits above the grid surface
@@ -111,7 +111,7 @@ export function Navbar() {
         </ul>
 
         {/* Track + knob */}
-        <div className="relative mt-5" ref={trackRef}>
+        <div className="relative mt-3" ref={trackRef}>
           {/* Inset track groove */}
           <div
             className="h-[4px] w-full rounded-full"
@@ -126,9 +126,9 @@ export function Navbar() {
             ref={knobRef}
             className="absolute flex flex-col items-center justify-center gap-[3px]"
             style={{
-              width: "16px",
-              height: "26px",
-              top: "-11px",
+              width: "12px",
+              height: "20px",
+              top: "-8px",
               borderRadius: "4px",
               background: "linear-gradient(180deg, #ffffff 0%, #e8eef8 40%, #d4deee 100%)",
               boxShadow: `
@@ -146,8 +146,8 @@ export function Navbar() {
               <div
                 key={i}
                 style={{
-                  width: "16px",
-                  height: "1.5px",
+                  width: "7px",
+                  height: "1px",
                   borderRadius: "1px",
                   background: "rgba(0, 12, 39, 0.12)",
                   boxShadow: "0 1px 0 rgba(255,255,255,0.7)",
