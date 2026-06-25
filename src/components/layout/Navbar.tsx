@@ -98,6 +98,15 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
+    const handler = (e: Event) => {
+      const index = (e as CustomEvent<{ index: number }>).detail.index;
+      setActiveIndex(index);
+    };
+    window.addEventListener("nav:setActive", handler);
+    return () => window.removeEventListener("nav:setActive", handler);
+  }, []);
+
+  useEffect(() => {
     const handleResize = () => {
       const link = linkRefs.current[activeIndex];
       const track = trackRef.current;
@@ -179,7 +188,10 @@ export function Navbar() {
               <Link
                 ref={(el) => { linkRefs.current[i] = el; }}
                 href={link.href}
-                onClick={() => setActiveIndex(i)}
+                onClick={() => {
+                  setActiveIndex(i);
+                  window.dispatchEvent(new CustomEvent("nav:clicked", { detail: { index: i } }));
+                }}
                 className={`
                   text-sm font-medium tracking-wide transition-all duration-300 select-none
                   ${activeIndex === i
@@ -215,6 +227,7 @@ export function Navbar() {
             });
             setActiveIndex(closestIndex);
             gsap.to(knob, { x: centers[closestIndex], duration: 0.4, ease: "power3.out" });
+            window.dispatchEvent(new CustomEvent("nav:clicked", { detail: { index: closestIndex } }));
           }}
         >
           {/* Inset track groove */}

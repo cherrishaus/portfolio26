@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { CuttingMat } from "@/components/sections/WorkSection";
 import Image from "next/image";
 
 interface StippleScreenProps {
@@ -526,41 +527,104 @@ function Lever({ angle }: { angle: number }) {
 }
 
 export function AboutSection() {
-  const outerRef = useRef<HTMLDivElement>(null);
+  const sectionRef  = useRef<HTMLDivElement>(null);
+  const accumRef    = useRef(0);
   const [progress, setProgress] = useState(0);
+  const [exited, setExited]     = useState(false);
+
+  const VIRTUAL_SCROLL = 900;
+
+  // Sync navbar slider with section state
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("nav:setActive", { detail: { index: exited ? 1 : 0 } }));
+  }, [exited]);
+
+  // Navbar clicks drive the section
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { index } = (e as CustomEvent<{ index: number }>).detail;
+      if (index === 1) {
+        accumRef.current = VIRTUAL_SCROLL;
+        setProgress(1);
+        setExited(true);
+      } else if (index === 0) {
+        accumRef.current = VIRTUAL_SCROLL;
+        setProgress(1);
+        setExited(false);
+      }
+    };
+    window.addEventListener("nav:clicked", handler);
+    return () => window.removeEventListener("nav:clicked", handler);
+  }, []);
 
   useEffect(() => {
-    const outer = outerRef.current;
-    if (!outer) return;
-    const onScroll = () => {
-      const rect = outer.getBoundingClientRect();
-      const scrolled = -rect.top;
-      const total = outer.clientHeight - window.innerHeight;
-      setProgress(Math.max(0, Math.min(1, scrolled / total)));
+    const el = sectionRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      if (e.deltaY > 0) {
+        if (exited) return;
+        accumRef.current = Math.min(VIRTUAL_SCROLL, accumRef.current + e.deltaY);
+        const p = accumRef.current / VIRTUAL_SCROLL;
+        setProgress(p);
+        if (p >= 1) setExited(true);
+      } else {
+        if (exited) {
+          accumRef.current = VIRTUAL_SCROLL;
+          setProgress(1);
+          setExited(false);
+        } else {
+          accumRef.current = Math.max(0, accumRef.current + e.deltaY);
+          setProgress(accumRef.current / VIRTUAL_SCROLL);
+        }
+      }
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [exited]);
 
   const remap = (v: number, a: number, b: number) =>
     Math.max(0, Math.min(1, (v - a) / (b - a)));
 
-  const s1 = 1 - remap(progress, 0.25, 0.42);
-  const s2 = Math.min(remap(progress, 0.25, 0.42), 1 - remap(progress, 0.58, 0.75));
-  const s3 = remap(progress, 0.58, 0.75);
+  const s1 = 1 - remap(progress, 0.15, 0.35);
+  const s2 = Math.min(remap(progress, 0.15, 0.35), 1 - remap(progress, 0.55, 0.75));
+  const s3 = remap(progress, 0.55, 0.75);
   const leverAngle = progress * 360;
 
   return (
-    <div ref={outerRef} style={{ height: "300vh" }}>
-      <section
-        id="about"
-        className="sticky top-0 flex flex-col justify-center h-screen px-24 pt-16"
-      >
+    <section
+      id="about"
+      ref={sectionRef}
+      className="flex flex-col justify-center h-screen px-24 pt-16 overflow-hidden"
+      style={{ position: "relative" }}
+    >
+        {/* Mat — slides up when exited */}
+        <div style={{
+          position: "absolute",
+          left: "50%",
+          top: "50%",
+          transform: exited
+            ? "translate(-50%, -50%) rotate(-4deg)"
+            : "translate(-50%, calc(-50% + 110vh)) rotate(-4deg)",
+          opacity: exited ? 1 : 0,
+          transition: "transform 0.9s cubic-bezier(0.16,1,0.3,1), opacity 0.6s ease",
+          pointerEvents: exited ? "auto" : "none",
+          zIndex: 10,
+        }}>
+          <CuttingMat />
+        </div>
+
         {/* Device + text row */}
         <div className="flex items-start">
 
-          {/* Lever — left of device */}
-          <Lever angle={leverAngle} />
+          {/* Lever + device — slide out left */}
+          <div style={{
+            display: "flex", alignItems: "flex-start",
+            transform: exited ? "translateX(-120vw)" : "translateX(0)",
+            transition: "transform 0.8s cubic-bezier(0.4,0,0.2,1)",
+          }}>
+            {/* Lever — left of device */}
+            <Lever angle={leverAngle} />
 
           {/* Device tray */}
           <div
@@ -651,27 +715,32 @@ export function AboutSection() {
               />
             </div>
           </div>
+          </div>{/* end lever+device slide wrapper */}
 
-          {/* About text */}
-          <div className="flex flex-col justify-center pl-20 pt-12" style={{ maxWidth: 520 }}>
-            <p
-              className="text-5xl font-semibold mb-6 leading-tight"
-              style={{ color: "#124BD0", letterSpacing: "-0.02em" }}
-            >
-              <span style={{ color: "#000C27" }}>Hi, I'm</span><br />Cherrisha Shetty
-            </p>
-            <p
-              className="text-2xl font-semibold leading-snug"
-              style={{ color: "#000C27", letterSpacing: "-0.02em" }}
-            >
-              I speak fluent ambiguity.{" "}
-              <br />
-              Complex systems, technical constraints, no brief - I turn them into <span style={{ color: "#124BD0" }}>products that work.</span>
-            </p>
+          {/* About text — slides out right */}
+          <div style={{
+            transform: exited ? "translateX(120vw)" : "translateX(0)",
+            transition: "transform 0.8s cubic-bezier(0.4,0,0.2,1)",
+          }}>
+            <div className="flex flex-col justify-center pl-20 pt-12" style={{ maxWidth: 520 }}>
+              <p
+                className="text-5xl font-semibold mb-6 leading-tight"
+                style={{ color: "#124BD0", letterSpacing: "-0.02em" }}
+              >
+                <span style={{ color: "#000C27" }}>Hi, I'm</span><br />Cherrisha Shetty
+              </p>
+              <p
+                className="text-2xl font-semibold leading-snug"
+                style={{ color: "#000C27", letterSpacing: "-0.02em" }}
+              >
+                I speak fluent ambiguity.{" "}
+                <br />
+                Complex systems, technical constraints, no brief - I turn them into <span style={{ color: "#124BD0" }}>products that work.</span>
+              </p>
+            </div>
           </div>
 
         </div>
-      </section>
-    </div>
+    </section>
   );
 }
