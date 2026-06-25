@@ -62,7 +62,7 @@ This does not require user approval unless the user asks for it — it is a disc
 
 **Font:** Space Grotesk (weights 300–700) — used for everything: headings, body, UI labels.
 
-**Background:** `#FAFBFF` with a subtle `#C3D5FF` square grid (40px cells, ~35% opacity).
+**Background:** `#FAFBFF` with a subtle `#C3D5FF` square grid (64px cells, 2.5px line weight, ~18% opacity). Implemented as a `fixed` CSS layer via `GridBackground.tsx`.
 
 ---
 
@@ -110,16 +110,32 @@ src/
 
 ---
 
+## Target Audience
+
+Startup product teams — PMs, design leads, and founders at tech companies hiring product designers.
+
+---
+
+## Visual Direction
+
+- **Global:** Constellation / spatial — floating particles, connected node networks, depth and parallax
+- **Case Studies:** Data visualization motifs — charts, graphs, flowing data streams as decorative elements
+- **Overall feel:** Full showpiece. The site itself is a design statement — 3D elements, cursor effects, scroll-driven animation throughout.
+
+---
+
 ## Site Sections
 
 | Section | Notes |
 |---------|-------|
-| **Navbar** | Sticky, minimal, transparent over hero then fills on scroll |
+| **Navbar** | Fixed pill-shaped tray, floats above grid with layered drop shadow (neumorphic elevated). Contains: About, Work, Process, Contact. DJ fader slider knob animates to active link with GSAP. Active link uses `#124BD0` with subtle glow. |
 | **Hero** | Full viewport, Three.js constellation particle field, name + tagline, animated text reveal |
 | **About** | Personal intro, skills, brief background |
 | **Case Studies** | Grid of projects with data-viz decorative elements, hover reveals |
 | **Graphic Design** | Masonry or editorial gallery layout |
 | **Contact** | Clean form + social links |
+
+**Work being showcased:** UI/UX design, case studies, graphic design.
 
 ---
 
