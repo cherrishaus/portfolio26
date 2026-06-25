@@ -54,7 +54,7 @@ This does not require user approval unless the user asks for it — it is a disc
 | Token | Value | Usage |
 |-------|-------|-------|
 | Navy | `#000C27` | Primary text, dark section backgrounds |
-| Frost | `#FAFBFF` | Main page background |
+| Frost | `#F3F6FF` | Main page background |
 | Ice | `#EDF4FF` | Card backgrounds, secondary surfaces |
 | Periwinkle | `#C3D5FF` | Borders, grid lines, subtle accents |
 | Royal | `#002E9A` | Primary actions, highlights |

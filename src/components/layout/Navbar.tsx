@@ -158,7 +158,7 @@ export function Navbar() {
         aria-label="Main navigation"
         className="pointer-events-auto relative rounded-full px-12 pt-2 pb-4"
         style={{
-          backgroundColor: "#FAFBFF",
+          backgroundColor: "#ffffff",
           // Elevated — tray sits above the grid surface
           boxShadow: `
             0 2px 4px rgba(0, 12, 39, 0.06),

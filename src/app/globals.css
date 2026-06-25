@@ -14,7 +14,7 @@
   /* Brand palette */
   --color-navy: #000C27;
   --color-ice: #EDF4FF;
-  --color-frost: #FAFBFF;
+  --color-frost: #F3F6FF;
   --color-periwinkle: #C3D5FF;
   --color-royal: #002E9A;
 
@@ -57,14 +57,14 @@
 }
 
 :root {
-  --background: #FAFBFF;
+  --background: #F3F6FF;
   --foreground: #000C27;
   --card: #EDF4FF;
   --card-foreground: #000C27;
-  --popover: #FAFBFF;
+  --popover: #F3F6FF;
   --popover-foreground: #000C27;
   --primary: #002E9A;
-  --primary-foreground: #FAFBFF;
+  --primary-foreground: #F3F6FF;
   --secondary: #EDF4FF;
   --secondary-foreground: #000C27;
   --muted: #C3D5FF;
@@ -79,12 +79,12 @@
   --chart-2: #C3D5FF;
   --chart-3: #EDF4FF;
   --chart-4: #000C27;
-  --chart-5: #FAFBFF;
+  --chart-5: #F3F6FF;
   --radius: 0.625rem;
   --sidebar: #EDF4FF;
   --sidebar-foreground: #000C27;
   --sidebar-primary: #002E9A;
-  --sidebar-primary-foreground: #FAFBFF;
+  --sidebar-primary-foreground: #F3F6FF;
   --sidebar-accent: #C3D5FF;
   --sidebar-accent-foreground: #000C27;
   --sidebar-border: #C3D5FF;
@@ -103,7 +103,7 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-space-grotesk), sans-serif;
-    background-color: #FAFBFF;
+    background-color: #F3F6FF;
   }
 
   html {

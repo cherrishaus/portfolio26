@@ -384,26 +384,33 @@ function Face({ w, h, color, transform, origin, top, bottom, left, radius, shado
 //   back   normal (0,−1,0) → dot L = −sin(θ)
 //   sides: constant ambient (normals ±X, always ⊥ to L)
 function faceShadow(light: number, isTopOrBottom = false): string {
-  const lit   = Math.max(0, Math.min(1, light));
-  const dark  = 1 - lit;
+  const lit  = Math.max(0, Math.min(1, light));
+  const dark = 1 - lit;
   const parts: string[] = [];
-  // outer drop shadow on the main flat face — fades as it rotates away
-  if (isTopOrBottom && lit > 0.05) {
-    const d = (lit * 0.11).toFixed(3);
-    parts.push(`0 ${(lit * 5).toFixed(1)}px ${(lit * 10).toFixed(1)}px rgba(0,12,39,${d})`);
-    parts.push(`0 1px ${(lit * 3).toFixed(1)}px rgba(0,12,39,${(lit * 0.07).toFixed(3)})`);
+
+  if (isTopOrBottom && lit > 0.04) {
+    // Three-layer drop shadow — crisp close, medium, soft far (navbar knob approach)
+    parts.push(`0 1px ${(lit * 3).toFixed(1)}px rgba(0,12,39,${(lit * 0.16).toFixed(3)})`);
+    parts.push(`0 ${(lit * 4).toFixed(1)}px ${(lit * 10).toFixed(1)}px rgba(0,12,39,${(lit * 0.13).toFixed(3)})`);
+    parts.push(`0 ${(lit * 8).toFixed(1)}px ${(lit * 22).toFixed(1)}px rgba(0,12,39,${(lit * 0.07).toFixed(3)})`);
+    // Bottom grounding shadow
+    parts.push(`inset 0 -1px 0 rgba(0,12,39,${(0.06 + dark * 0.04).toFixed(3)})`);
   }
-  // inset shadow darkens the unlit portion
-  if (dark > 0.05) {
-    const op   = (dark * 0.22).toFixed(3);
-    const blur = (dark * 14).toFixed(1);
-    parts.push(`inset 0 0 ${blur}px rgba(0,12,39,${op})`);
-  }
-  // inset highlight on the lit portion
-  if (lit > 0.4) {
-    const op = ((lit - 0.4) / 0.6 * 0.85).toFixed(2);
+
+  // Bright top-edge highlight — strong when lit, absent when dark
+  if (lit > 0.15) {
+    const op = ((lit - 0.15) / 0.85 * 0.92).toFixed(2);
     parts.push(`inset 0 1px 0 rgba(255,255,255,${op})`);
   }
+
+  // Inset shadow fills the face when it turns away from light
+  if (dark > 0.06) {
+    parts.push(`inset 0 0 ${(dark * 16).toFixed(1)}px rgba(0,12,39,${(dark * 0.24).toFixed(3)})`);
+    if (dark > 0.5) {
+      parts.push(`inset 0 2px ${(dark * 8).toFixed(1)}px rgba(0,12,39,${(dark * 0.10).toFixed(3)})`);
+    }
+  }
+
   return parts.join(", ") || "none";
 }
 
@@ -433,14 +440,18 @@ function Box3D({ w, h, d, colors, angle = 0, roundTop = true, roundBottom = true
   // side faces: same corner mapping along their height
   const sideR   = `${rs}px ${rs}px ${re}px ${re}px`;
 
+  // Side bevels — left edge highlight, right edge shadow (matches navbar knob sides)
+  const leftShadow  = [faceShadow(sideAmbient), "inset 1px 0 0 rgba(255,255,255,0.6)"].filter(Boolean).join(", ");
+  const rightShadow = [faceShadow(sideAmbient), "inset -1px 0 0 rgba(0,12,39,0.07)"].filter(Boolean).join(", ");
+
   return (
     <div style={{ position: "relative", width: w, height: h, transformStyle: "preserve-3d", flexShrink: 0, transform: `translateZ(${-d / 2}px)` }}>
       <Face w={w} h={h} color={colors.top}    transform={`translateZ(${d}px)`}                             radius={topR}    shadow={faceShadow(topLight,    true)} />
       <Face w={w} h={h} color={colors.bottom} transform="rotateX(180deg)"                                  radius={bottomR} shadow={faceShadow(bottomLight, true)} />
       <Face w={w} h={d} color={colors.front}  transform="rotateX(-90deg)" origin="bottom center" bottom={0} radius={rb}     shadow={faceShadow(frontLight)} />
       <Face w={w} h={d} color={colors.back}   transform="rotateX(90deg)"  origin="top center"    top={0}    radius={rt}     shadow={faceShadow(backLight)} />
-      <Face w={d} h={h} color={colors.left}   transform="rotateY(-90deg)" origin="left center"   left={0}   radius={sideR}  shadow={faceShadow(sideAmbient)} />
-      <Face w={d} h={h} color={colors.right}  transform={`translateX(${w}px) rotateY(-90deg)`}   origin="left center" left={0} radius={sideR} shadow={faceShadow(sideAmbient)} />
+      <Face w={d} h={h} color={colors.left}   transform="rotateY(-90deg)" origin="left center"   left={0}   radius={sideR}  shadow={leftShadow} />
+      <Face w={d} h={h} color={colors.right}  transform={`translateX(${w}px) rotateY(-90deg)`}   origin="left center" left={0} radius={sideR} shadow={rightShadow} />
     </div>
   );
 }
@@ -452,10 +463,17 @@ function Lever({ angle }: { angle: number }) {
   const ARM_W  = 13, ARM_H  = 130, ARM_D  = 12;
   const HDL_W  = 56, HDL_H  = 11, HDL_D  = 12;
 
-  const white = "#FFFFFF";
-  const axisColors: BoxColors = { top: white, bottom: white, front: white, back: white, left: white, right: white };
-  const armColors: BoxColors   = { top: white, bottom: white, front: white, back: white, left: white, right: white };
-  const handleColors: BoxColors = { top: white, bottom: white, front: white, back: white, left: white, right: white };
+  // Match device tray color exactly so lever and device read as one material
+  const topGrad   = "linear-gradient(180deg, #ffffff 0%, #f2f6fc 100%)";
+  const sideGrad  = "linear-gradient(180deg, #ffffff 0%, #eef3fa 100%)";
+  const edgeColor = "#f2f6fc";
+  // Handle grip texture — repeating ridges over gradient (navbar-style)
+  const gripTop   = `repeating-linear-gradient(to bottom, rgba(0,12,39,0.045) 0px, rgba(0,12,39,0.045) 1px, transparent 1px, transparent 4px), ${topGrad}`;
+  const gripFront = `repeating-linear-gradient(to right, rgba(0,12,39,0.018) 0px, rgba(0,12,39,0.018) 1px, transparent 1px, transparent 4px), ${topGrad}`;
+
+  const axisColors:  BoxColors = { top: "#ffffff", bottom: "#ffffff", front: "#ffffff", back: "#ffffff", left: "#ffffff", right: "#ffffff" };
+  const armColors:   BoxColors = { top: topGrad,  bottom: topGrad,  front: edgeColor,  back: edgeColor, left: sideGrad, right: sideGrad };
+  const handleColors: BoxColors = { top: gripTop, bottom: topGrad,  front: gripFront,  back: edgeColor, left: sideGrad, right: sideGrad };
 
   // How many px the arm embeds up into the axis block — hides the arm base at all angles
   const OVERLAP = 10;
@@ -468,7 +486,8 @@ function Lever({ angle }: { angle: number }) {
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "flex-start",
-      paddingTop: 100,
+      paddingTop: 40,
+      filter: "drop-shadow(0 4px 8px rgba(0,12,39,0.13)) drop-shadow(0 1px 2px rgba(0,12,39,0.10))",
     }}>
       {/*
         Pivot is OVERLAP px above the axis block's bottom edge.
@@ -547,13 +566,16 @@ export function AboutSection() {
           <div
             className="relative rounded-2xl p-5"
             style={{
-              backgroundColor: "#FAFBFF",
+              background: "linear-gradient(160deg, #ffffff 0%, #f2f6fc 100%)",
               boxShadow: `
-                0 2px 4px rgba(0,12,39,0.06),
-                0 8px 20px rgba(0,12,39,0.12),
-                0 24px 56px rgba(0,12,39,0.10),
-                inset 0 1px 0 rgba(255,255,255,0.95),
-                inset 0 -1px 0 rgba(0,12,39,0.06)
+                0 1px 2px rgba(0,12,39,0.08),
+                0 4px 10px rgba(0,12,39,0.10),
+                0 12px 28px rgba(0,12,39,0.10),
+                0 28px 60px rgba(0,12,39,0.08),
+                inset 0 1px 0 rgba(255,255,255,1),
+                inset 0 -1px 0 rgba(0,12,39,0.06),
+                inset 1px 0 0 rgba(255,255,255,0.7),
+                inset -1px 0 0 rgba(0,12,39,0.04)
               `,
             }}
           >
@@ -566,12 +588,12 @@ export function AboutSection() {
                     width: w,
                     height: 4,
                     borderRadius: "3px 3px 0 0",
-                    backgroundColor: "#ffffff",
+                    background: "linear-gradient(180deg, #ffffff 0%, #edf1f8 100%)",
                     boxShadow: `
-                      0 -1px 0 rgba(255,255,255,1),
-                      0 -3px 6px rgba(0,12,39,0.10),
-                      inset 0 -2px 4px rgba(0,12,39,0.10),
-                      inset 0 1px 0 rgba(255,255,255,0.9),
+                      0 -1px 2px rgba(0,12,39,0.10),
+                      0 -4px 8px rgba(0,12,39,0.08),
+                      inset 0 1px 0 rgba(255,255,255,0.95),
+                      inset 0 -1px 0 rgba(0,12,39,0.06),
                       1px 0 0 rgba(0,12,39,0.06),
                       -1px 0 0 rgba(0,12,39,0.06)
                     `,
@@ -587,9 +609,9 @@ export function AboutSection() {
                 width: SCREEN_W,
                 height: SCREEN_H,
                 boxShadow: `
-                  0 0 0 1px rgba(0,12,39,0.12),
-                  inset 0 2px 10px rgba(0,0,0,0.18),
-                  inset 0 0 0 1px rgba(255,255,255,0.06)
+                  0 0 0 1px rgba(0,12,39,0.16),
+                  inset 0 2px 18px rgba(0,0,0,0.28),
+                  inset 0 0 0 1px rgba(255,255,255,0.08)
                 `,
               }}
             >
