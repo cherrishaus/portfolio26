@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
 interface StippleScreenProps {
@@ -344,141 +344,312 @@ function StippleScreen({ src, alt, width, height }: StippleScreenProps) {
   );
 }
 
-export function AboutSection() {
+const SCREEN_W = 720;
+const SCREEN_H = 440;
+
+interface BoxColors {
+  top: string; bottom: string;
+  front: string; back: string;
+  left: string; right: string;
+}
+
+function Face({ w, h, color, transform, origin, top, bottom, left, radius, shadow }: {
+  w: number; h: number; color: string; transform: string;
+  origin?: string; top?: number; bottom?: number; left?: number;
+  radius?: number | string; shadow?: string;
+}) {
   return (
-    <section
-      id="about"
-      className="flex flex-col justify-center min-h-screen px-24 pt-32"
-    >
-      {/* Device + text row */}
-      <div className="flex items-start">
-      {/* Device tray */}
-      <div
-        className="relative rounded-2xl px-5 pt-5 pb-16"
-        style={{
-          backgroundColor: "#FAFBFF",
-          boxShadow: `
-            0 2px 4px rgba(0,12,39,0.06),
-            0 8px 20px rgba(0,12,39,0.12),
-            0 24px 56px rgba(0,12,39,0.10),
-            inset 0 1px 0 rgba(255,255,255,0.95),
-            inset 0 -1px 0 rgba(0,12,39,0.06)
-          `,
-        }}
+    <div style={{
+      position: "absolute",
+      width: w,
+      height: h,
+      background: color,
+      transform,
+      transformOrigin: origin,
+      backfaceVisibility: "hidden",
+      WebkitBackfaceVisibility: "hidden",
+      borderRadius: radius ?? 0,
+      boxShadow: shadow,
+      ...(top    !== undefined && { top }),
+      ...(bottom !== undefined && { bottom }),
+      ...(left   !== undefined && { left }),
+    }} />
+  );
+}
+
+// Light from camera (+Z). After rotateX(θ), each face's lit fraction:
+//   top    normal (0,0,+1) → dot L = cos(θ)
+//   bottom normal (0,0,−1) → dot L = −cos(θ)
+//   front  normal (0,+1,0) → dot L = sin(θ)
+//   back   normal (0,−1,0) → dot L = −sin(θ)
+//   sides: constant ambient (normals ±X, always ⊥ to L)
+function faceShadow(light: number, isTopOrBottom = false): string {
+  const lit   = Math.max(0, Math.min(1, light));
+  const dark  = 1 - lit;
+  const parts: string[] = [];
+  // outer drop shadow on the main flat face — fades as it rotates away
+  if (isTopOrBottom && lit > 0.05) {
+    const d = (lit * 0.11).toFixed(3);
+    parts.push(`0 ${(lit * 5).toFixed(1)}px ${(lit * 10).toFixed(1)}px rgba(0,12,39,${d})`);
+    parts.push(`0 1px ${(lit * 3).toFixed(1)}px rgba(0,12,39,${(lit * 0.07).toFixed(3)})`);
+  }
+  // inset shadow darkens the unlit portion
+  if (dark > 0.05) {
+    const op   = (dark * 0.22).toFixed(3);
+    const blur = (dark * 14).toFixed(1);
+    parts.push(`inset 0 0 ${blur}px rgba(0,12,39,${op})`);
+  }
+  // inset highlight on the lit portion
+  if (lit > 0.4) {
+    const op = ((lit - 0.4) / 0.6 * 0.85).toFixed(2);
+    parts.push(`inset 0 1px 0 rgba(255,255,255,${op})`);
+  }
+  return parts.join(", ") || "none";
+}
+
+function Box3D({ w, h, d, colors, angle = 0, roundTop = true, roundBottom = true }: {
+  w: number; h: number; d: number; colors: BoxColors; angle?: number;
+  roundTop?: boolean; roundBottom?: boolean;
+}) {
+  const θ = (angle * Math.PI) / 180;
+  const cosθ = Math.cos(θ);
+  const sinθ = Math.sin(θ);
+
+  const topLight    = Math.max(0,  cosθ);
+  const bottomLight = Math.max(0, -cosθ);
+  const frontLight  = Math.max(0,  sinθ);
+  const backLight   = Math.max(0, -sinθ);
+  const sideAmbient = 0.28; // sides never face the light directly
+
+  // Per-corner radius strings: CSS order is TL TR BR BL
+  const rt = roundTop    ? 4 : 0;
+  const rb = roundBottom ? 4 : 0;
+  const rs = roundTop    ? 2 : 0; // side-face top corners
+  const re = roundBottom ? 2 : 0; // side-face bottom corners
+  // top face: top edge = back (axis) side, bottom edge = front (handle) side
+  const topR    = `${rt}px ${rt}px ${rb}px ${rb}px`;
+  // bottom face is rotateX(180deg) so its visual top/bottom flip
+  const bottomR = `${rb}px ${rb}px ${rt}px ${rt}px`;
+  // side faces: same corner mapping along their height
+  const sideR   = `${rs}px ${rs}px ${re}px ${re}px`;
+
+  return (
+    <div style={{ position: "relative", width: w, height: h, transformStyle: "preserve-3d", flexShrink: 0, transform: `translateZ(${-d / 2}px)` }}>
+      <Face w={w} h={h} color={colors.top}    transform={`translateZ(${d}px)`}                             radius={topR}    shadow={faceShadow(topLight,    true)} />
+      <Face w={w} h={h} color={colors.bottom} transform="rotateX(180deg)"                                  radius={bottomR} shadow={faceShadow(bottomLight, true)} />
+      <Face w={w} h={d} color={colors.front}  transform="rotateX(-90deg)" origin="bottom center" bottom={0} radius={rb}     shadow={faceShadow(frontLight)} />
+      <Face w={w} h={d} color={colors.back}   transform="rotateX(90deg)"  origin="top center"    top={0}    radius={rt}     shadow={faceShadow(backLight)} />
+      <Face w={d} h={h} color={colors.left}   transform="rotateY(-90deg)" origin="left center"   left={0}   radius={sideR}  shadow={faceShadow(sideAmbient)} />
+      <Face w={d} h={h} color={colors.right}  transform={`translateX(${w}px) rotateY(-90deg)`}   origin="left center" left={0} radius={sideR} shadow={faceShadow(sideAmbient)} />
+    </div>
+  );
+}
+
+function Lever({ angle }: { angle: number }) {
+  const AXIS_W = 48, AXIS_H = 22, AXIS_D = 12;
+  // Shift axis block right so its right edge stays flush against the device (X=80)
+  const AXIS_OFFSET = 40 - AXIS_W / 2; // = 16px
+  const ARM_W  = 13, ARM_H  = 130, ARM_D  = 12;
+  const HDL_W  = 56, HDL_H  = 11, HDL_D  = 12;
+
+  const white = "#FFFFFF";
+  const axisColors: BoxColors = { top: white, bottom: white, front: white, back: white, left: white, right: white };
+  const armColors: BoxColors   = { top: white, bottom: white, front: white, back: white, left: white, right: white };
+  const handleColors: BoxColors = { top: white, bottom: white, front: white, back: white, left: white, right: white };
+
+  // How many px the arm embeds up into the axis block — hides the arm base at all angles
+  const OVERLAP = 10;
+
+  return (
+    <div style={{
+      width: 80,
+      height: SCREEN_H,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "flex-start",
+      paddingTop: 100,
+    }}>
+      {/*
+        Pivot is OVERLAP px above the axis block's bottom edge.
+        perspectiveOrigin Y = AXIS_H - OVERLAP keeps the vanishing point at the pivot.
+      */}
+      <div style={{ perspective: "240px", perspectiveOrigin: `50% ${AXIS_H - OVERLAP}px` }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", transformStyle: "preserve-3d" }}>
+          {/* Axis block — right-shifted so right edge is flush against the device */}
+          <div style={{ transform: `translateX(${AXIS_OFFSET}px)`, transformStyle: "preserve-3d" }}>
+            <Box3D w={AXIS_W} h={AXIS_H} d={AXIS_D} colors={axisColors} />
+          </div>
+
+          {/* Arm embedded OVERLAP px into the axis block — pivot at top of this div */}
+          <div style={{
+            marginTop: -OVERLAP,
+            transformOrigin: "50% 0%",
+            transform: `rotateX(${angle}deg)`,
+            transformStyle: "preserve-3d",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}>
+            <Box3D w={ARM_W} h={ARM_H} d={ARM_D} colors={armColors} angle={angle} roundBottom={false} />
+            {/* Handle — right end aligns with arm's right edge */}
+            <div style={{
+              transform: `translateX(${-(HDL_W - ARM_W) / 2}px)`,
+              transformStyle: "preserve-3d",
+            }}>
+              <Box3D w={HDL_W} h={HDL_H} d={HDL_D} colors={handleColors} angle={angle} roundTop={false} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function AboutSection() {
+  const outerRef = useRef<HTMLDivElement>(null);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const outer = outerRef.current;
+    if (!outer) return;
+    const onScroll = () => {
+      const rect = outer.getBoundingClientRect();
+      const scrolled = -rect.top;
+      const total = outer.clientHeight - window.innerHeight;
+      setProgress(Math.max(0, Math.min(1, scrolled / total)));
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const remap = (v: number, a: number, b: number) =>
+    Math.max(0, Math.min(1, (v - a) / (b - a)));
+
+  const s1 = 1 - remap(progress, 0.25, 0.42);
+  const s2 = Math.min(remap(progress, 0.25, 0.42), 1 - remap(progress, 0.58, 0.75));
+  const s3 = remap(progress, 0.58, 0.75);
+  const leverAngle = progress * 360;
+
+  return (
+    <div ref={outerRef} style={{ height: "300vh" }}>
+      <section
+        id="about"
+        className="sticky top-0 flex flex-col justify-center h-screen px-24 pt-16"
       >
-        {/* Top-edge buttons — side view, protruding above device rim */}
-        <div className="absolute left-8 flex items-end gap-5" style={{ bottom: "100%" }}>
-          {([110, 68] as number[]).map((w, i) => (
+        {/* Device + text row */}
+        <div className="flex items-start">
+
+          {/* Lever — left of device */}
+          <Lever angle={leverAngle} />
+
+          {/* Device tray */}
+          <div
+            className="relative rounded-2xl p-5"
+            style={{
+              backgroundColor: "#FAFBFF",
+              boxShadow: `
+                0 2px 4px rgba(0,12,39,0.06),
+                0 8px 20px rgba(0,12,39,0.12),
+                0 24px 56px rgba(0,12,39,0.10),
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                inset 0 -1px 0 rgba(0,12,39,0.06)
+              `,
+            }}
+          >
+            {/* Top-edge buttons — side view, protruding above device rim */}
+            <div className="absolute left-8 flex items-end gap-5" style={{ bottom: "100%" }}>
+              {([110, 68] as number[]).map((w, i) => (
+                <div
+                  key={i}
+                  style={{
+                    width: w,
+                    height: 4,
+                    borderRadius: "3px 3px 0 0",
+                    backgroundColor: "#ffffff",
+                    boxShadow: `
+                      0 -1px 0 rgba(255,255,255,1),
+                      0 -3px 6px rgba(0,12,39,0.10),
+                      inset 0 -2px 4px rgba(0,12,39,0.10),
+                      inset 0 1px 0 rgba(255,255,255,0.9),
+                      1px 0 0 rgba(0,12,39,0.06),
+                      -1px 0 0 rgba(0,12,39,0.06)
+                    `,
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Screen — three panels, morphing on scroll */}
             <div
-              key={i}
+              className="relative overflow-hidden"
               style={{
-                width: w,
-                height: 4,
-                borderRadius: "3px 3px 0 0",
-                backgroundColor: "#ffffff",
+                width: SCREEN_W,
+                height: SCREEN_H,
                 boxShadow: `
-                  0 -1px 0 rgba(255,255,255,1),
-                  0 -3px 6px rgba(0,12,39,0.10),
-                  inset 0 -2px 4px rgba(0,12,39,0.10),
-                  inset 0 1px 0 rgba(255,255,255,0.9),
-                  1px 0 0 rgba(0,12,39,0.06),
-                  -1px 0 0 rgba(0,12,39,0.06)
+                  0 0 0 1px rgba(0,12,39,0.12),
+                  inset 0 2px 10px rgba(0,0,0,0.18),
+                  inset 0 0 0 1px rgba(255,255,255,0.06)
                 `,
               }}
-            />
-          ))}
+            >
+              {/* Screen 1 — stipple portrait */}
+              <div className="absolute inset-0" style={{ opacity: s1, transition: "opacity 0.05s linear" }}>
+                <StippleScreen
+                  src="/about-photo-2.jpg"
+                  alt="Cherrisha Shetty"
+                  width={SCREEN_W}
+                  height={SCREEN_H}
+                />
+              </div>
+
+              {/* Screen 2 — journey (placeholder) */}
+              <div
+                className="absolute inset-0 flex items-center justify-center"
+                style={{ opacity: s2, transition: "opacity 0.05s linear", backgroundColor: "#000C27", pointerEvents: s2 > 0.05 ? "auto" : "none" }}
+              >
+                <p className="text-white text-2xl font-semibold opacity-40">Journey — coming soon</p>
+              </div>
+
+              {/* Screen 3 — free time (placeholder) */}
+              <div
+                className="absolute inset-0 flex items-center justify-center"
+                style={{ opacity: s3, transition: "opacity 0.05s linear", backgroundColor: "#000C27", pointerEvents: s3 > 0.05 ? "auto" : "none" }}
+              >
+                <p className="text-white text-2xl font-semibold opacity-40">Free time — coming soon</p>
+              </div>
+
+              {/* Screen glare — top-left reflection */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: `linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 25%, transparent 50%)`,
+                  zIndex: 10,
+                }}
+              />
+            </div>
+          </div>
+
+          {/* About text */}
+          <div className="flex flex-col justify-center pl-20 pt-12" style={{ maxWidth: 520 }}>
+            <p
+              className="text-5xl font-semibold mb-6 leading-tight"
+              style={{ color: "#124BD0", letterSpacing: "-0.02em" }}
+            >
+              <span style={{ color: "#000C27" }}>Hi, I'm</span><br />Cherrisha Shetty
+            </p>
+            <p
+              className="text-2xl font-semibold leading-snug"
+              style={{ color: "#000C27", letterSpacing: "-0.02em" }}
+            >
+              I speak fluent ambiguity.{" "}
+              <br />
+              Complex systems, technical constraints, no brief - I turn them into <span style={{ color: "#124BD0" }}>products that work.</span>
+            </p>
+          </div>
+
         </div>
-
-        {/* Screen — flatscreen, no bezel */}
-        <div
-          className="relative overflow-hidden"
-          style={{
-            boxShadow: `
-              0 0 0 1px rgba(0,12,39,0.12),
-              inset 0 2px 10px rgba(0,0,0,0.18),
-              inset 0 0 0 1px rgba(255,255,255,0.06)
-            `,
-          }}
-        >
-          <StippleScreen
-            src="/about-photo-2.jpg"
-            alt="Cherrisha Shetty"
-            width={720}
-            height={440}
-          />
-
-          {/* Screen glare — top-left reflection */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: `linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 25%, transparent 50%)`,
-            }}
-          />
-        </div>
-
-        {/* Bottom surface — left/right equilateral rubber buttons, top-down view */}
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-8" style={{ height: 40 }}>
-          {/* Left-pointing */}
-          <svg width="38" height="44" viewBox="0 0 32 37" fill="none">
-            <defs>
-              <linearGradient id="rubber-left" x1="100%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#D6E4F5" />
-                <stop offset="100%" stopColor="#C3D5FF" />
-              </linearGradient>
-              <filter id="shadow-left" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000C27" floodOpacity="0.10" />
-                <feDropShadow dx="0" dy="1" stdDeviation="0.5" floodColor="#000C27" floodOpacity="0.06" />
-              </filter>
-            </defs>
-            <path
-              d="M 31.2,6 A 6,6 0 0,0 26,3 L 5.2,15 A 6,6 0 0,0 5.2,21 L 26,33 A 6,6 0 0,0 31.2,30 Z"
-              fill="url(#rubber-left)"
-              filter="url(#shadow-left)"
-              stroke="rgba(0,12,39,0.06)"
-              strokeWidth="0.5"
-            />
-          </svg>
-          {/* Right-pointing */}
-          <svg width="38" height="44" viewBox="0 0 32 37" fill="none">
-            <defs>
-              <linearGradient id="rubber-right" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#D6E4F5" />
-                <stop offset="100%" stopColor="#C3D5FF" />
-              </linearGradient>
-              <filter id="shadow-right" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000C27" floodOpacity="0.10" />
-                <feDropShadow dx="0" dy="1" stdDeviation="0.5" floodColor="#000C27" floodOpacity="0.06" />
-              </filter>
-            </defs>
-            <path
-              d="M 0,6 A 6,6 0 0,1 5.2,3 L 26,15 A 6,6 0 0,1 26,21 L 5.2,33 A 6,6 0 0,1 0,30 Z"
-              fill="url(#rubber-right)"
-              filter="url(#shadow-right)"
-              stroke="rgba(0,12,39,0.06)"
-              strokeWidth="0.5"
-            />
-          </svg>
-        </div>
-      </div>
-
-      {/* About text */}
-      <div className="flex flex-col justify-center pl-20 pt-12" style={{ maxWidth: 520 }}>
-        <p
-          className="text-5xl font-semibold mb-6 leading-tight"
-          style={{ color: "#124BD0", letterSpacing: "-0.02em" }}
-        >
-          <span style={{ color: "#000C27" }}>Hi, I'm</span><br />Cherrisha Shetty
-        </p>
-        <p
-          className="text-2xl font-semibold leading-snug"
-          style={{ color: "#000C27", letterSpacing: "-0.02em" }}
-        >
-          I speak fluent ambiguity.{" "}
-          <br />
-          Complex systems, technical constraints, no brief - I turn them into <span style={{ color: "#124BD0" }}>products that work.</span>
-        </p>
-      </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
