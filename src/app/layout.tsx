@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Handjet } from "next/font/google";
+import { Space_Grotesk, Handjet, Bitcount_Prop_Single } from "next/font/google";
 import { GridBackground } from "@/components/layout/GridBackground";
 import { Navbar } from "@/components/layout/Navbar";
 import "./globals.css";
@@ -16,6 +16,12 @@ const handjet = Handjet({
   weight: ["400"],
 });
 
+const bitcountPropSingle = Bitcount_Prop_Single({
+  variable: "--font-bitcount-prop-single",
+  subsets: ["latin"],
+  weight: ["400"],
+});
+
 export const metadata: Metadata = {
   title: "Cherrisha Shetty — UI/UX Designer",
   description: "Portfolio of Cherrisha Shetty, UI/UX and graphic designer.",
@@ -27,7 +33,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${handjet.variable} h-full antialiased`}>
+    <html lang="en" className={`${spaceGrotesk.variable} ${handjet.variable} ${bitcountPropSingle.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
           <GridBackground />
           <Navbar />

@@ -211,7 +211,7 @@ function StippleScreen({ src, alt, width, height }: StippleScreenProps) {
         className="absolute inset-0 pointer-events-none"
         width={width}
         height={height}
-        style={{ fontFamily: "var(--font-handjet), monospace" }}
+        style={{ fontFamily: "var(--font-bitcount-prop-single), monospace" }}
       >
         {/* Left labels */}
         {[
@@ -227,7 +227,7 @@ function StippleScreen({ src, alt, width, height }: StippleScreenProps) {
               <polyline points={`${ax},${ay} ${bx},${by} ${cx + 16},${by}`} fill="none" stroke="#124BD0" strokeWidth={1.5} opacity={0.9} />
               <text textAnchor="middle" fontSize={18} fontWeight={700} letterSpacing={1} fill="#124BD0" opacity={0.95}>
                 {words.map((word, i) => (
-                  <tspan key={i} x={cx - 16} y={startY + i * lineH}>{word}</tspan>
+                  <tspan key={i} x={cx - 28} y={startY + i * lineH}>{word}</tspan>
                 ))}
               </text>
             </g>
@@ -236,10 +236,10 @@ function StippleScreen({ src, alt, width, height }: StippleScreenProps) {
 
         {/* Right labels */}
         {[
-          { label: "Research Informed", ax: portraitX + PORTRAIT_W - 60, ay: portraitY + 80,  bx: portraitX + PORTRAIT_W - 52, by: portraitY + 55,  cx: portraitX + PORTRAIT_W + 60 },
-          { label: "Cross Functional",  ax: portraitX + PORTRAIT_W - 60, ay: portraitY + 210, bx: portraitX + PORTRAIT_W - 52, by: portraitY + 210, cx: portraitX + PORTRAIT_W + 60 },
-          { label: "Design to Code",     ax: portraitX + PORTRAIT_W - 60, ay: portraitY + 340, bx: portraitX + PORTRAIT_W - 52, by: portraitY + 360, cx: portraitX + PORTRAIT_W + 60 },
-        ].map(({ label, ax, ay, bx, by, cx }) => {
+          { label: "Research Informed", ax: portraitX + PORTRAIT_W - 60, ay: portraitY + 80,  bx: portraitX + PORTRAIT_W - 52, by: portraitY + 55,  cx: portraitX + PORTRAIT_W + 60, textX: 36 },
+          { label: "Cross Functional",  ax: portraitX + PORTRAIT_W - 60, ay: portraitY + 210, bx: portraitX + PORTRAIT_W - 52, by: portraitY + 210, cx: portraitX + PORTRAIT_W + 60, textX: 48 },
+          { label: "Design to Code",    ax: portraitX + PORTRAIT_W - 60, ay: portraitY + 340, bx: portraitX + PORTRAIT_W - 52, by: portraitY + 360, cx: portraitX + PORTRAIT_W + 60, textX: 28 },
+        ].map(({ label, ax, ay, bx, by, cx, textX }) => {
           const words = label.split(" ");
           const lineH = 20;
           const startY = by - (words.length * lineH) / 2 + lineH / 2;
@@ -249,7 +249,7 @@ function StippleScreen({ src, alt, width, height }: StippleScreenProps) {
               <polyline points={`${ax},${ay} ${bx},${by} ${cx - 16},${by}`} fill="none" stroke="#124BD0" strokeWidth={1.5} opacity={0.9} />
               <text textAnchor="middle" fontSize={18} fontWeight={700} letterSpacing={1} fill="#124BD0" opacity={0.95}>
                 {words.map((word, i) => (
-                  <tspan key={i} x={cx + 24} y={startY + i * lineH}>{word}</tspan>
+                  <tspan key={i} x={cx + textX} y={startY + i * lineH}>{word}</tspan>
                 ))}
               </text>
             </g>
