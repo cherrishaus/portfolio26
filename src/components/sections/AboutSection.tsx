@@ -10,10 +10,17 @@ interface StippleScreenProps {
   height: number;
 }
 
+// Portrait frame dimensions within the landscape screen
+const PORTRAIT_W = 280;
+const PORTRAIT_H = 400;
+
 function StippleScreen({ src, alt, width, height }: StippleScreenProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const revealRef = useRef<HTMLDivElement>(null);
+
+  const portraitX = Math.round((width - PORTRAIT_W) / 2);
+  const portraitY = Math.round((height - PORTRAIT_H) / 2);
 
   // Draw stipple onto canvas once image loads
   useEffect(() => {
@@ -25,41 +32,48 @@ function StippleScreen({ src, alt, width, height }: StippleScreenProps) {
     const img = new window.Image();
     img.src = src;
     img.onload = () => {
-      // Replicate object-cover: scale to fill, center-crop
-      const scale = Math.max(width / img.naturalWidth, height / img.naturalHeight);
+      // object-cover crop into the portrait area
+      const scale = Math.max(PORTRAIT_W / img.naturalWidth, PORTRAIT_H / img.naturalHeight);
       const renderedW = img.naturalWidth * scale;
       const renderedH = img.naturalHeight * scale;
-      const offsetX = (width - renderedW) / 2;
-      const offsetY = (height - renderedH) / 2;
+      const srcOffX = (PORTRAIT_W - renderedW) / 2;
+      const srcOffY = (PORTRAIT_H - renderedH) / 2;
 
       const off = document.createElement("canvas");
-      off.width = width;
-      off.height = height;
+      off.width = PORTRAIT_W;
+      off.height = PORTRAIT_H;
       const offCtx = off.getContext("2d")!;
-      offCtx.drawImage(img, offsetX, offsetY, renderedW, renderedH);
-      const { data } = offCtx.getImageData(0, 0, width, height);
+      offCtx.drawImage(img, srcOffX, srcOffY, renderedW, renderedH);
+      const { data } = offCtx.getImageData(0, 0, PORTRAIT_W, PORTRAIT_H);
 
-      ctx.fillStyle = "#FAFBFF";
+      // Navy fills the full screen
+      ctx.fillStyle = "#000C27";
       ctx.fillRect(0, 0, width, height);
 
       const grid = 4;
       const maxR = 1.2;
+      const fadeSize = 60; // px fade at each edge
 
-      for (let y = 0; y < height; y += grid) {
-        for (let x = 0; x < width; x += grid) {
-          const i = (y * width + x) * 4;
+      for (let py = 0; py < PORTRAIT_H; py += grid) {
+        for (let px = 0; px < PORTRAIT_W; px += grid) {
+          const i = (py * PORTRAIT_W + px) * 4;
           const brightness = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) / 255;
           const r = (1 - brightness) * maxR;
           if (r > 0.15) {
+            // Edge fade factor — 0 at edges, 1 in center
+            const edgeX = Math.min(px, PORTRAIT_W - px) / fadeSize;
+            const edgeY = Math.min(py, PORTRAIT_H - py) / fadeSize;
+            const fade = Math.min(1, edgeX) * Math.min(1, edgeY);
+
             ctx.beginPath();
-            ctx.arc(x, y, r, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(0,12,39,${0.7 + (1 - brightness) * 0.3})`;
+            ctx.arc(portraitX + px, portraitY + py, r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(237,244,255,${(0.4 + (1 - brightness) * 0.6) * fade})`;
             ctx.fill();
           }
         }
       }
     };
-  }, [src, width, height]);
+  }, [src, width, height, portraitX, portraitY]);
 
   // Cursor peephole — native listeners, CSS variable drives clip-path
   useEffect(() => {
@@ -116,6 +130,7 @@ function StippleScreen({ src, alt, width, height }: StippleScreenProps) {
         width,
         height,
         cursor: "none",
+        backgroundColor: "#000C27",
       }}
     >
       {/* Stipple layer */}
@@ -126,8 +141,19 @@ function StippleScreen({ src, alt, width, height }: StippleScreenProps) {
         className="absolute inset-0"
       />
 
-      {/* Real photo — peephole reveal, no initial clipPath in React style */}
-      <div ref={revealRef} className="absolute inset-0">
+      {/* Real photo — portrait-sized, peephole reveal */}
+      <div
+        ref={revealRef}
+        className="absolute overflow-hidden"
+        style={{
+          width: PORTRAIT_W,
+          height: PORTRAIT_H,
+          left: portraitX,
+          top: portraitY,
+          WebkitMaskImage: "radial-gradient(ellipse 85% 85% at 50% 50%, black 40%, transparent 100%)",
+          maskImage: "radial-gradient(ellipse 85% 85% at 50% 50%, black 40%, transparent 100%)",
+        }}
+      >
         <Image src={src} alt={alt} fill className="object-cover" priority />
       </div>
 
@@ -174,7 +200,7 @@ export function AboutSection() {
           }}
         >
           <StippleScreen
-            src="/about-photo.jpg"
+            src="/about-photo-2.jpg"
             alt="Cherrisha Shetty"
             width={720}
             height={440}
