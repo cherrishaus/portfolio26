@@ -18,6 +18,7 @@ function StippleScreen({ src, alt, width, height }: StippleScreenProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const revealRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
   const portraitX = Math.round((width - PORTRAIT_W) / 2);
   const portraitY = Math.round((height - PORTRAIT_H) / 2);
@@ -136,6 +137,40 @@ function StippleScreen({ src, alt, width, height }: StippleScreenProps) {
     };
   }, []);
 
+  // Label parallax — SVG layer floats on cursor movement
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const MAX = 18;
+    const LERP = 0.04;
+
+    let targetX = 0, targetY = 0;
+    let currentX = 0, currentY = 0;
+    let rafId: number;
+
+    const onMouseMove = (e: MouseEvent) => {
+      const nx = (e.clientX / window.innerWidth - 0.5) * 2;
+      const ny = (e.clientY / window.innerHeight - 0.5) * 2;
+      targetX = nx * MAX;
+      targetY = ny * MAX;
+    };
+
+    const tick = () => {
+      currentX += (targetX - currentX) * LERP;
+      currentY += (targetY - currentY) * LERP;
+      svg.style.transform = `translate(${currentX.toFixed(2)}px, ${currentY.toFixed(2)}px)`;
+      rafId = requestAnimationFrame(tick);
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    rafId = requestAnimationFrame(tick);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      cancelAnimationFrame(rafId);
+    };
+  }, []);
+
   return (
     <div
       ref={containerRef}
@@ -169,6 +204,58 @@ function StippleScreen({ src, alt, width, height }: StippleScreenProps) {
       >
         <Image src={src} alt={alt} fill className="object-cover" priority />
       </div>
+
+      {/* Engineering annotations */}
+      <svg
+        ref={svgRef}
+        className="absolute inset-0 pointer-events-none"
+        width={width}
+        height={height}
+        style={{ fontFamily: "var(--font-handjet), monospace" }}
+      >
+        {/* Left labels */}
+        {[
+          { label: "Systems Thinker",    ax: portraitX + 60,  ay: portraitY + 90,  bx: portraitX + 52,  by: portraitY + 60,  cx: portraitX - 60 },
+          { label: "Empathy Led Design", ax: portraitX + 60,  ay: portraitY + 260, bx: portraitX + 52,  by: portraitY + 280, cx: portraitX - 60 },
+        ].map(({ label, ax, ay, bx, by, cx }) => {
+          const words = label.split(" ");
+          const lineH = 20;
+          const startY = by - (words.length * lineH) / 2 + lineH / 2;
+          return (
+            <g key={label}>
+              <circle cx={ax} cy={ay} r={3} fill="#124BD0" />
+              <polyline points={`${ax},${ay} ${bx},${by} ${cx + 16},${by}`} fill="none" stroke="#124BD0" strokeWidth={1.5} opacity={0.9} />
+              <text textAnchor="middle" fontSize={18} fontWeight={700} letterSpacing={1} fill="#124BD0" opacity={0.95}>
+                {words.map((word, i) => (
+                  <tspan key={i} x={cx - 16} y={startY + i * lineH}>{word}</tspan>
+                ))}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Right labels */}
+        {[
+          { label: "Research Informed", ax: portraitX + PORTRAIT_W - 60, ay: portraitY + 80,  bx: portraitX + PORTRAIT_W - 52, by: portraitY + 55,  cx: portraitX + PORTRAIT_W + 60 },
+          { label: "Cross Functional",  ax: portraitX + PORTRAIT_W - 60, ay: portraitY + 210, bx: portraitX + PORTRAIT_W - 52, by: portraitY + 210, cx: portraitX + PORTRAIT_W + 60 },
+          { label: "Design to Code",     ax: portraitX + PORTRAIT_W - 60, ay: portraitY + 340, bx: portraitX + PORTRAIT_W - 52, by: portraitY + 360, cx: portraitX + PORTRAIT_W + 60 },
+        ].map(({ label, ax, ay, bx, by, cx }) => {
+          const words = label.split(" ");
+          const lineH = 20;
+          const startY = by - (words.length * lineH) / 2 + lineH / 2;
+          return (
+            <g key={label}>
+              <circle cx={ax} cy={ay} r={3} fill="#124BD0" />
+              <polyline points={`${ax},${ay} ${bx},${by} ${cx - 16},${by}`} fill="none" stroke="#124BD0" strokeWidth={1.5} opacity={0.9} />
+              <text textAnchor="middle" fontSize={18} fontWeight={700} letterSpacing={1} fill="#124BD0" opacity={0.95}>
+                {words.map((word, i) => (
+                  <tspan key={i} x={cx + 24} y={startY + i * lineH}>{word}</tspan>
+                ))}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
 
       {/* CRT scanline overlay */}
       <div
