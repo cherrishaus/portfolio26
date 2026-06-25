@@ -120,9 +120,13 @@ export function Navbar() {
     const track = trackRef.current;
     if (!knob || !track) return;
 
+    const minX = 0;
+    const maxX = track.offsetWidth - knob.offsetWidth;
+
     const draggable = Draggable.create(knob, {
       type: "x",
-      bounds: track,
+      minX,
+      maxX,
       cursor: "grab",
       activeCursor: "grabbing",
       onDragEnd() {
@@ -193,7 +197,26 @@ export function Navbar() {
         </ul>
 
         {/* Track + knob */}
-        <div className="relative mt-3" ref={trackRef}>
+        <div
+          className="relative mt-3 cursor-pointer"
+          ref={trackRef}
+          onClick={(e) => {
+            const track = trackRef.current;
+            const knob = knobRef.current;
+            if (!track || !knob) return;
+            const trackRect = track.getBoundingClientRect();
+            const clickX = e.clientX - trackRect.left;
+            const centers = getLinkCenters();
+            let closestIndex = 0;
+            let closestDist = Infinity;
+            centers.forEach((cx, i) => {
+              const dist = Math.abs(cx + knob.offsetWidth / 2 - clickX);
+              if (dist < closestDist) { closestDist = dist; closestIndex = i; }
+            });
+            setActiveIndex(closestIndex);
+            gsap.to(knob, { x: centers[closestIndex], duration: 0.4, ease: "power3.out" });
+          }}
+        >
           {/* Inset track groove */}
           <div
             className="h-[4px] w-full rounded-full"
