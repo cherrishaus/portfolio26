@@ -12,8 +12,8 @@ interface StippleScreenProps {
 }
 
 // Portrait frame dimensions within the landscape screen
-const PORTRAIT_W = 280;
-const PORTRAIT_H = 400;
+const PORTRAIT_W = 210;
+const PORTRAIT_H = 310;
 
 function StippleScreen({ src, alt, width, height }: StippleScreenProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -345,8 +345,8 @@ function StippleScreen({ src, alt, width, height }: StippleScreenProps) {
   );
 }
 
-const SCREEN_W = 720;
-const SCREEN_H = 440;
+const SCREEN_W = 540;
+const SCREEN_H = 340;
 
 interface BoxColors {
   top: string; bottom: string;
@@ -595,7 +595,7 @@ export function AboutSection() {
     <section
       id="about"
       ref={sectionRef}
-      className="flex flex-col justify-center h-screen px-24 pt-16 overflow-hidden"
+      className="flex flex-col justify-center h-screen px-24 overflow-hidden"
       style={{ position: "relative" }}
     >
         {/* Mat — slides up when exited */}
@@ -615,12 +615,43 @@ export function AboutSection() {
         </div>
 
         {/* Device + text row */}
-        <div className="flex items-start">
+        <div className="flex items-center w-full gap-16">
 
-          {/* Lever + device — slide out left */}
+          {/* Text — left, slides out left on exit */}
           <div style={{
-            display: "flex", alignItems: "flex-start",
+            flex: 1,
             transform: exited ? "translateX(-120vw)" : "translateX(0)",
+            transition: "transform 0.8s cubic-bezier(0.4,0,0.2,1)",
+          }}>
+            <div className="flex flex-col">
+              {/* Eyebrow */}
+              <div className="flex items-center gap-3 mb-8">
+                <div style={{ width: 20, height: 1, background: "#C3D5FF" }} />
+                <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.14em", color: "#124BD0", textTransform: "uppercase" as const }}>
+                  UI/UX Designer · Phronetic AI
+                </span>
+              </div>
+
+              {/* Name */}
+              <h1 style={{ fontSize: 84, fontWeight: 700, color: "#000C27", letterSpacing: "-0.03em", lineHeight: 1.0, marginBottom: 32 }}>
+                Cherrisha<br />Shetty
+              </h1>
+
+              {/* Rule */}
+              <div style={{ width: 64, height: 1, background: "#C3D5FF", marginBottom: 28 }} />
+
+              {/* Body */}
+              <p style={{ fontSize: 17, fontWeight: 400, color: "#000C27", opacity: 0.65, letterSpacing: "-0.01em", lineHeight: 1.65, maxWidth: 400 }}>
+                I speak fluent ambiguity. Complex systems, technical constraints, no brief —{" "}
+                I turn them into <span style={{ color: "#124BD0", fontWeight: 500, opacity: 1 }}>products that work.</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Lever + device — right, slides out right on exit */}
+          <div style={{
+            display: "flex", alignItems: "center", flexShrink: 0,
+            transform: exited ? "translateX(120vw)" : "translateX(0)",
             transition: "transform 0.8s cubic-bezier(0.4,0,0.2,1)",
           }}>
             {/* Lever — left of device */}
@@ -630,7 +661,7 @@ export function AboutSection() {
           <div
             className="relative rounded-2xl p-5"
             style={{
-              background: "linear-gradient(160deg, #ffffff 0%, #f2f6fc 100%)",
+              background: "#ffffff",
               boxShadow: `
                 0 1px 2px rgba(0,12,39,0.08),
                 0 4px 10px rgba(0,12,39,0.10),
@@ -689,20 +720,22 @@ export function AboutSection() {
                 />
               </div>
 
-              {/* Screen 2 — journey (placeholder) */}
+              {/* Screen 2 — journey */}
               <div
-                className="absolute inset-0 flex items-center justify-center"
-                style={{ opacity: s2, transition: "opacity 0.05s linear", backgroundColor: "#000C27", pointerEvents: s2 > 0.05 ? "auto" : "none" }}
+                className="absolute inset-0 flex flex-col items-start justify-end"
+                style={{ opacity: s2, transition: "opacity 0.05s linear", backgroundColor: "#000C27", pointerEvents: s2 > 0.05 ? "auto" : "none", padding: 28 }}
               >
-                <p className="text-white text-2xl font-semibold opacity-40">Journey — coming soon</p>
+                <span style={{ fontSize: 10, letterSpacing: "0.14em", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", fontWeight: 500, marginBottom: 8 }}>02 — Journey</span>
+                <p style={{ fontSize: 18, fontWeight: 600, color: "rgba(255,255,255,0.85)", lineHeight: 1.3, letterSpacing: "-0.02em" }}>From arts to engineering<br />to product design.</p>
               </div>
 
-              {/* Screen 3 — free time (placeholder) */}
+              {/* Screen 3 — beyond work */}
               <div
-                className="absolute inset-0 flex items-center justify-center"
-                style={{ opacity: s3, transition: "opacity 0.05s linear", backgroundColor: "#000C27", pointerEvents: s3 > 0.05 ? "auto" : "none" }}
+                className="absolute inset-0 flex flex-col items-start justify-end"
+                style={{ opacity: s3, transition: "opacity 0.05s linear", backgroundColor: "#000C27", pointerEvents: s3 > 0.05 ? "auto" : "none", padding: 28 }}
               >
-                <p className="text-white text-2xl font-semibold opacity-40">Free time — coming soon</p>
+                <span style={{ fontSize: 10, letterSpacing: "0.14em", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", fontWeight: 500, marginBottom: 8 }}>03 — Beyond work</span>
+                <p style={{ fontSize: 18, fontWeight: 600, color: "rgba(255,255,255,0.85)", lineHeight: 1.3, letterSpacing: "-0.02em" }}>Workshops, designathons,<br />and teaching what I know.</p>
               </div>
 
               {/* Screen glare — top-left reflection */}
@@ -715,30 +748,7 @@ export function AboutSection() {
               />
             </div>
           </div>
-          </div>{/* end lever+device slide wrapper */}
-
-          {/* About text — slides out right */}
-          <div style={{
-            transform: exited ? "translateX(120vw)" : "translateX(0)",
-            transition: "transform 0.8s cubic-bezier(0.4,0,0.2,1)",
-          }}>
-            <div className="flex flex-col justify-center pl-20 pt-12" style={{ maxWidth: 520 }}>
-              <p
-                className="text-5xl font-semibold mb-6 leading-tight"
-                style={{ color: "#124BD0", letterSpacing: "-0.02em" }}
-              >
-                <span style={{ color: "#000C27" }}>Hi, I'm</span><br />Cherrisha Shetty
-              </p>
-              <p
-                className="text-2xl font-semibold leading-snug"
-                style={{ color: "#000C27", letterSpacing: "-0.02em" }}
-              >
-                I speak fluent ambiguity.{" "}
-                <br />
-                Complex systems, technical constraints, no brief - I turn them into <span style={{ color: "#124BD0" }}>products that work.</span>
-              </p>
-            </div>
-          </div>
+          </div>{/* end lever+device */}
 
         </div>
     </section>
